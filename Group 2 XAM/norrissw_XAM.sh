@@ -10,15 +10,15 @@
 #$ -N pipeline
 
 ######################################
-FILE1=$1
+F1=$1
 #1796_1.fastq
-FILE2=$2
+F2=$2
 #1796_2.fastq
 REF=$3
 #hg19.fa
-SAMBAM=$4
+SB=$4
 #1796
-
+SNAME=$5
 source /home/norrissw/bin/source_BNFO620.sh
 source /usr/global/jdk7/java_env.sh
 java -version
@@ -35,18 +35,21 @@ env
 #Transform .sai to .SAM format  use bwa sampe command for paired end reads
 #/usr/global/blp/bin/bwa sampe ${REF} ${FILE1}aln_.sai ${FILE2}aln_.sai ${FILE1} ${FILE2} >${SAMBAM}.sam
 
-#Use samtools to transform SAM to BAM
+
+#2. Using mem now instead of aln and sampe
+/usr/global/blp/bin/bwa mem -t 6 -M ${REF} -R'@RG\tID:$SNAME\tLB:$SNAME\tSM:$SNAME\PL:$SNAME' ${F1} ${F2} > $F1_merged.sam
+
+#3. Use samtools to transform SAM to BAM
 #/usr/global/blp/bin/samtools view -bS ${SAMBAM}.sam  -o ${SAMBAM}.bam
 
-# Using mem now instead of aln and sampe
-/usr/global/blp/bin/bwa mem ${REF} ${FILE1} ${FILE2} > ${FILE1}_merged.sam
-#Sort BAM file
-/usr/global/blp/bin/samtools sort ${SAMBAM}.bam ${SAMBAM}.sorted
+#4. Sort BAM file
+#/usr/global/blp/bin/samtools sort ${SB}.bam ${SB}.sorted
 
-#Add Read Groups
+#5. Add Read Groups
+# This is necessary to correct duplicat error during index/stats etc. #
 #java -Xmx2g -jar /usr/global/blp/picard-tools-1.95/AddOrReplaceReadGroups.jar INPUT=${SAMBAM}.bam OUTPUT=${SAMBAM}.sorted.bam SORT_ORDER=coordinate RGLB=8 RGPL=Illumina RGPU=1 RGSM=${SAMBAM}
 
-#Remove duplicate reads
+#6. Remove duplicate reads
 #java -jar /usr/global/blp/picard-tools-1.95/MarkDuplicates.jar REMOVE_DUPLICATES=true M=${SAMBAM}.duplicate_metrics.out I=${SAMBAM}.sorted.bam O=${SAMBAM}.no_dups.bam
 
 #Index BAM File - Picard BuildBamIndex

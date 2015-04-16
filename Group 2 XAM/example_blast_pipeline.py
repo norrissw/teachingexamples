@@ -7,7 +7,7 @@ try: #try to capture 4 arguments from cli, otherwise print an error message with
     qfile = sys.argv[2]
     outfile = sys.argv[3]
     dbtype = sys.argv[4]
-except:
+except: 
     print "Usage: python Pipeline.py <subject_file> <input_query> <outputfile> <nucl or prot>"
     quit()
 blastn='/usr/local/ncbi-blast-2.2.29+/bin/blastn' #path to blastn
