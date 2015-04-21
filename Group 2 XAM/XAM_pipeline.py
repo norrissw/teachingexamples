@@ -31,11 +31,11 @@ def QC():
 def align():
 #	try:
 #	 /usr/global/blp/bin/bwa mem -t 10 -M ./ucsc.hg19.fasta -R "@RG\tID:TEST_TEST_TEST\tLB:TEST\tSM:TEST\tPL:ILLUMINA" 1796_1.fastq 1796_2.fastq > 1796_norrissw_merged.bam
-	RG = '"@RG\\tID:%s_%s_%s\\tLB:%s\\tSM:%s\\tPL:ILLUMINA"' % (SNAME,SNAME,SNAME,SNAME,SNAME)
+	RG = '@RG\\tID:%s_%s_%s\\tLB:%s\\tSM:%s\\tPL:ILLUMINA' % (SNAME,SNAME,SNAME,SNAME,SNAME)
 	merged = SNAME + '_merged.sam'
 	print "Running bwa alignment..."
-	print bwapath,'mem','-t','10','-M',REF,'-R',RG,F1,F2,'>',merged
-	subprocess.Popen((bwapath,'mem','-t','10','-M',REF,'-R',RG,F1,F2,'>',merged)).wait()
+	print bwapath,'mem','-t','10',REF,'-R',RG,F1,F2,'>',merged
+	subprocess.Popen(['bwa','mem','-t','20','-M',REF,'-R',RG,F1,F2], stdout=merged,stderr=(merged +'.err').wait() #maybe use .call?
 #	except:
 #		print "Alignment Failed..."
 #		sys.exit()
