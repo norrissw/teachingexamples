@@ -35,7 +35,7 @@ def align():
 	merged = SNAME + '_merged.sam'
 	print "Running bwa alignment..."
 	print bwapath,'mem','-t','10','-M',REF,'-R',RG,F1,F2,'>',merged
-	subprocess.Popen([bwapath,'mem -t 10 -M',REF,'-R',RG,F1,F2,'>',merged]).wait()
+	subprocess.Popen((bwapath,'mem','-t','10','-M',REF,'-R',RG,F1,F2,'>',merged)).wait()
 #	except:
 #		print "Alignment Failed..."
 #		sys.exit()
