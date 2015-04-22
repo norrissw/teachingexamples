@@ -34,8 +34,8 @@ def align():
 	RG = '@RG\\tID:%s_%s_%s\\tLB:%s\\tSM:%s\\tPL:ILLUMINA' % (SNAME,SNAME,SNAME,SNAME,SNAME)
 	merged = SNAME + '_merged.sam'
 	print "Running bwa alignment..."
-	print bwapath,'mem','-t','10',REF,'-R',RG,F1,F2,'>',merged
-	subprocess.Popen(['bwa','mem','-t','20','-M',REF,'-R',RG,F1,F2], stdout=merged,stderr=(merged +'.err').wait() #maybe use .call?
+	#print bwapath,'mem','-t','10',REF,'-R',RG,F1,F2,'>',merged
+	subprocess.Popen(['bwa','mem','-t','20','-M',REF,'-R',RG,F1,F2], stdout=merged,stderr=(merged +'.err')).wait() #maybe use .call?
 #	except:
 #		print "Alignment Failed..."
 #		sys.exit()
