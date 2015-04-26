@@ -129,8 +129,8 @@ def rescore(REALIGNED):
 	return RESCORE
 def snps_indels(RESCORE):
 	print "Running SNP and InDels analysis"
-        INDELS = "%s_indels.txt" % SNAME
-        INDELSTATS = "%s_indels_stats.txt" % SNAME
+    INDELS = "%s_indels.txt" % SNAME
+    INDELSTATS = "%s_indels_stats.txt" % SNAME
 	VARIANTS = "%s_variants.vcf" % SNAME
 	CALLS = "%s.calls.geli" % SNAME
 	KNOWNSITES = "/gpfs_fs/bnfo620/exome_data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
@@ -139,7 +139,7 @@ def snps_indels(RESCORE):
 	#subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','IndelGenotyperV2','-R',REF,'-I',RESCORE,'-O',INDELS,'--verbose','-o',INDELSTATS]).wait()
 	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','HaplotypeCaller','-R',REF,'-I',RESCORE,'--genotyping_mode','DISCOVERY','-o',VARIANTS]).wait()
 	#subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','UnifiedGenotyper','-R',REF,'-I',RESCORE,'-varout',CALLS,'-vf','GELI','-stand_call_conf','30.0','-stand_emit_conf','10.0','-pl','SOLEXA']).wait()	
-	subprocess.Popen([java,,'-Xmx6g','-jar',GATK,'-T','VariantRecalibrator','-R',REF,'-input',VARIANTS,
+	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','VariantRecalibrator','-R',REF,'-input',VARIANTS,'-recalFile',RECALOUT,'-resource:hapmap,known=false,training=true,truth=true,prior=15.0',HAPMAP,'-resource:omni,known=false,training=true,truth=false,prior=12.0',OMNI,'-resource:dbsnp,known=true,training=false,truth=false,prior=2.0',DBSNP,'-an','MQ','-mode','INDEL', #this is not finished
 #VariantRecalibrator  #assigning accurate confidence scores to each putative mutation call
 #java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -T VariantRecalibrator -R ${REFERENCE} -input ${SAMBAM}.raw_variants.vcf -resource:hapmap,known=false,training=true,truth=true,prior=15.0 new.annotated.vcf -resource:omni,known=false,training=true,truth=false,prior=12.0 /gpfs_fs/bnfo620/nultontj/4_14_XAM/1000G_omni2.5.hg19.sites.vcf -resource:dbsnp,known=true,training=false,truth=false,prior=6.0 /gpfs_fs/bnfo620/nultontj/4_14_XAM/dbsnp_138.hg19.vcf -mode SNP -an QD -an MQ -an HaplotypeScore -recalFile ${SAMBAM}.raw.SNPs.recal  -tranchesFile ${SAMBAM}.raw.SNPs.tranches -rscriptFile ${SAMBAM}.recal.plots.R
 
@@ -151,14 +151,14 @@ def snps_indels(RESCORE):
 #java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -T HaplotypeCaller -R $REORDER -I ${F1}.recal.bam -o --genotyping_mode DISCOVERY -stand_emit_conf 10 -stand_call_conf 30 -variant_index_type LINEAR -variant_index_parameter 128000 --emitRefConfidence GVCF -o ${F1}.raw_variants.vcf
 
 
-
+#############
 
 # These commands will do the recalibration and apply the recalibration
 #java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -R $REORDER -T VariantRecalibrator -input ${F1}.raw_variants.vcf -recalFile ${F1}.output.recal -tranchesFile ${F1}.output.tranches -nt 4 --maxGaussians 4 -resource:mills,known=false,training=true,truth=true,prior= 12.0 $VCFI -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 $VCFdb -an QD -an DP -an FS -an SOR -an ReadPosRankSum -an MQRankSum -an InbreedingCoeff -mode INDEL      
 
 
 # These commands will do the recalibration and apply the recalibration                                                                                                               
-java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -R $REORDER -T VariantRecalibrator -input ${F1}.raw_variants.vcf -resource:hapmap,known=false,training=true,truth=true,prior=15.0 $HMVCF -resource:omni,known=false,training=true,truth=false,prior=12.0 $VCFI -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 $VCFdb  -an MQ  -mode INDEL -recalFile ${F1}.output.recal -tranchesFile ${F1}.output.tranches -rscriptFile output.plots.R
+#java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -R $REORDER -T VariantRecalibrator -input ${F1}.raw_variants.vcf -resource:hapmap,known=false,training=true,truth=true,prior=15.0 $HMVCF -resource:omni,known=false,training=true,truth=false,prior=12.0 $VCFI -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 $VCFdb  -an MQ  -mode INDEL -recalFile ${F1}.output.recal -tranchesFile ${F1}.output.tranches -rscriptFile output.plots.R
 
 
 
