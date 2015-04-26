@@ -66,7 +66,8 @@ def rmv_dups(SORTED):
 	subprocess.Popen([java,'-Xmx6g','-jar',picardjar,'REMOVE_DUPLICATES=true',MOUT,IN,OUT]).wait()
 	return (SNAME + '.nodup.bam')
 def index(NODUPS):
-	INPUT = 'I=' + SNAME + '.nodup.bam'
+	print NODUPS
+	INPUT = 'I=' + NODUPS 
 	print "Creating Index..."
 	picardjar = picardpath + "BuildBamIndex.jar"
 	subprocess.Popen([java,'-Xmx6g','-jar',picardjar,INPUT]).wait()
@@ -103,25 +104,72 @@ def reorder(NODUPS):
 	return ('%s.nodup_reorder.bam' % SNAME)
 def realign(REORDER):
 	print "Running Realignment..."
+	print REORDER
 	picardjar = picardpath + "FixMateInformation.jar"
 	OUTLIST = '%s.bam.list' % SNAME
 	REALIGNED = '%s.realigned.bam' % SNAME
 	print java,'-Xmx6g','-jar',GATK,'-T','RealignerTargetCreator','-R',REF,'-o',OUTLIST,'-I',REORDER
-	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','RealignerTargetCreator','-R',REF,'-o',OUTLIST,'-I',REORDER]).wait()
-	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','IndelRealigner','-targetIntervals',OUTLIST,'-I',REORDER,'-R',REF,'-o',REALIGNED]).wait()
+	#subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','RealignerTargetCreator','-R',REF,'-o',OUTLIST,'-I',REORDER]).wait()
+	#subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','IndelRealigner','-targetIntervals',OUTLIST,'-I',REORDER,'-R',REF,'-o',REALIGNED]).wait()
 	INPUT = "INPUT=%s" % REALIGNED
 	OUTPUT = "OUTPUT=%s.realigned_fixmate.bam" % SNAME
-	subprocess.Popen([java,picardjar,INPUT,OUTPUT,'SO=coordinate','VALIDATION_STRINGENCY=LENIENT','CREATE_INDEX=true']).wait()
-def recalibrate():
+	print java,picardjar,INPUT,OUTPUT,'SO=coordinate','VALIDATION_STRINGENCY=LENIENT','CREATE_INDEX=true'
+	subprocess.Popen([java,'-Xmx6g','-jar',picardjar,INPUT,OUTPUT,'SO=coordinate','VALIDATION_STRINGENCY=LENIENT','CREATE_INDEX=true']).wait()
+	return "%s.realigned_fixmate.bam" % SNAME
+def recalibrate(REALIGNED):
 	print "Running base recalibration..."
-	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','BaseRecalibrator','-I','%s.realigned_fixmate.bam','-R',REF,'-o','%s.recal.table' % (SNAME)]).wait()
-def rescore():
+	RECALOUT = "%s.recal.table" % SNAME
+	KNOWNSITES = "/gpfs_fs/bnfo620/exome_data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
+	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','BaseRecalibrator','-I',REALIGNED,'-R',REF,'-o',RECALOUT,'-knownSites',KNOWNSITES]).wait()
+def rescore(REALIGNED):
 	print "Running base quality score recalibration..."
-	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','PrintReads','-R',REF,'-I','%s.realigned_fixmate.bam','-BQSR','recalibration_report.grp','-o','%s_rescored.bam' % (SNAME,SNAME)]).wait()
-	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','IndelGenotyperV2','-R',REF,'-I','%s.realigned_fixmate.bam','-O','%s_indels.txt','--verbose','-o','%s_indel_stats.txt' % (SNAME,SNAME,SNAME)]).wait()
-def snps_indels():
+	RESCORE = "%s_rescored.bam" % SNAME
+	REPORT = "%s_recal_report.txt" % SNAME
+	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','PrintReads','-R',REF,'-I',REALIGNED,'-BQSR',REPORT,'-o',RESCORE]).wait()
+	return RESCORE
+def snps_indels(RESCORE):
 	print "Running SNP and InDels analysis"
-	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','UnifiedGenotyper','-R',REF,'-I','%s.realigned_fixmate.bam','-varout','%s.geli.calls','-vf','GELI','-stand_call_conf','30.0','-stand_emit_conf','10.0','-pl','SOLEXA' % (SNAME,SNAME)]).wait()	
+        INDELS = "%s_indels.txt" % SNAME
+        INDELSTATS = "%s_indels_stats.txt" % SNAME
+	VARIANTS = "%s_variants.vcf" % SNAME
+	CALLS = "%s.calls.geli" % SNAME
+	KNOWNSITES = "/gpfs_fs/bnfo620/exome_data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
+	VARIANTANNO = "%s_annotated.vcf"
+	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','VariantAnnotator','-R',REF,'-I',RESCORE,'--variant',KNOWNSITES,'-o',VARIANTANNO]).wait()
+	#subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','IndelGenotyperV2','-R',REF,'-I',RESCORE,'-O',INDELS,'--verbose','-o',INDELSTATS]).wait()
+	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','HaplotypeCaller','-R',REF,'-I',RESCORE,'--genotyping_mode','DISCOVERY','-o',VARIANTS]).wait()
+	#subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','UnifiedGenotyper','-R',REF,'-I',RESCORE,'-varout',CALLS,'-vf','GELI','-stand_call_conf','30.0','-stand_emit_conf','10.0','-pl','SOLEXA']).wait()	
+	subprocess.Popen([java,,'-Xmx6g','-jar',GATK,'-T','VariantRecalibrator','-R',REF,'-input',VARIANTS,
+#VariantRecalibrator  #assigning accurate confidence scores to each putative mutation call
+#java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -T VariantRecalibrator -R ${REFERENCE} -input ${SAMBAM}.raw_variants.vcf -resource:hapmap,known=false,training=true,truth=true,prior=15.0 new.annotated.vcf -resource:omni,known=false,training=true,truth=false,prior=12.0 /gpfs_fs/bnfo620/nultontj/4_14_XAM/1000G_omni2.5.hg19.sites.vcf -resource:dbsnp,known=true,training=false,truth=false,prior=6.0 /gpfs_fs/bnfo620/nultontj/4_14_XAM/dbsnp_138.hg19.vcf -mode SNP -an QD -an MQ -an HaplotypeScore -recalFile ${SAMBAM}.raw.SNPs.recal  -tranchesFile ${SAMBAM}.raw.SNPs.tranches -rscriptFile ${SAMBAM}.recal.plots.R
+
+# Apply Recalibration # Applyes filters to input and creates analysis worthy VCF
+#java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -T ApplyRecalibration -R ${REFERENCE} -input raw_variants.vcf -mode SNP -recalFile ${SAMBAM}.raw.SNPs.recal -tranchesFile ${SAMBAM}.raw.SNPs.tranches -o ${SAMBAM}.recal.SNPs.vcf -ts_filter_level 99.0
+
+#java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -T VariantAnnotator -R ${REFERENCE} -I ${SAMBAM}.final.bam -o ${SAMBAM}.annotated.vcf
+# These commands will create VCF files Call SNPs and indels
+#java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -T HaplotypeCaller -R $REORDER -I ${F1}.recal.bam -o --genotyping_mode DISCOVERY -stand_emit_conf 10 -stand_call_conf 30 -variant_index_type LINEAR -variant_index_parameter 128000 --emitRefConfidence GVCF -o ${F1}.raw_variants.vcf
+
+
+
+
+# These commands will do the recalibration and apply the recalibration
+#java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -R $REORDER -T VariantRecalibrator -input ${F1}.raw_variants.vcf -recalFile ${F1}.output.recal -tranchesFile ${F1}.output.tranches -nt 4 --maxGaussians 4 -resource:mills,known=false,training=true,truth=true,prior= 12.0 $VCFI -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 $VCFdb -an QD -an DP -an FS -an SOR -an ReadPosRankSum -an MQRankSum -an InbreedingCoeff -mode INDEL      
+
+
+# These commands will do the recalibration and apply the recalibration                                                                                                               
+java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -R $REORDER -T VariantRecalibrator -input ${F1}.raw_variants.vcf -resource:hapmap,known=false,training=true,truth=true,prior=15.0 $HMVCF -resource:omni,known=false,training=true,truth=false,prior=12.0 $VCFI -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 $VCFdb  -an MQ  -mode INDEL -recalFile ${F1}.output.recal -tranchesFile ${F1}.output.tranches -rscriptFile output.plots.R
+
+
+
+
+#java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -T ApplyRecalibration -R $REORDER -input ${F1}.raw_variants.vcf --ts_filter_level 99.0 -tranchesFile ${F1}.output.tranches -recalFile ${F1}.output.recal -mode SNP -o ${F1}.output.recalibrated.filtered.vcf      
+
+
+
+# This command will do the annotation for the VCF file 
+#java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -R $REORDER -T VariantAnnotator -I ${F1}.recal.bam -o annotation.out.vcf -A Coverage --variant ${F1}.raw_variants.vcf --dbsnp $VCFdb  
+
 
 #QC()
 #merged = align() COMMENTED OUTFOR TESTING
@@ -137,9 +185,13 @@ def snps_indels():
 #validate(NODUPS)
 #seq_dict() #Only needs to run once
 #fasta_idx() #Only needs to run once
-NODUPS = 'norrissw_796.nodup.bam'
-REORDER = reorder(NODUPS)
-REALIGNED = realign(REORDER)
-recalibrate()
+#NODUPS = 'norrissw_796.nodup.bam' # for testing only
+#REORDER = reorder(NODUPS)
+#index(REORDER)
+#index_stats(REORDER)
+#REORDER = "norrissw_796.nodup_reorder.bam" # for testing only
+#REALIGNED = realign(REORDER)
+REALIGNED = "norrissw_796.realigned_fixmate.bam"
+recalibrate(REALIGNED)
 rescore()
 snps_indels()
