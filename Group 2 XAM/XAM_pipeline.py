@@ -17,7 +17,7 @@ except:
 	sys.exit(1)
 bwapath="/usr/global/blp/bin/bwa"
 sampath="/usr/global/blp/bin/samtools"
-java="java -Xmx6g -jar"
+java="java"
 picardpath="/usr/global/blp/picard-tools-1.95/"
 GATK="/usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar"
 ### Functions ###
@@ -29,83 +29,117 @@ def QC():
 		print "FastQC Failed..."
 	#pass
 def align():
-#	try:
-#	 /usr/global/blp/bin/bwa mem -t 10 -M ./ucsc.hg19.fasta -R "@RG\tID:TEST_TEST_TEST\tLB:TEST\tSM:TEST\tPL:ILLUMINA" 1796_1.fastq 1796_2.fastq > 1796_norrissw_merged.bam
 	RG = '@RG\\tID:%s_%s_%s\\tLB:%s\\tSM:%s\\tPL:ILLUMINA' % (SNAME,SNAME,SNAME,SNAME,SNAME)
-	merged = SNAME + '_merged.sam'
+	merged = SNAME + '_aligned.sam'
+	mergedfile = open(merged,'w')
 	print "Running bwa alignment..."
 	#print bwapath,'mem','-t','10',REF,'-R',RG,F1,F2,'>',merged
-	subprocess.Popen(['bwa','mem','-t','20','-M',REF,'-R',RG,F1,F2], stdout=merged,stderr=(merged +'.err')).wait() #maybe use .call?
+	memalign = subprocess.Popen(['bwa','mem','-t','20','-M',REF,'-R',RG,F1,F2], stdout=subprocess.PIPE)#,stdin=subprocess.PIPE,stderr=subprocess.PIPE).wait() #maybe use .call?
+	memout = memalign.communicate()[0]
+#	print memout
+	mergedfile.write(memout)
+	return merged
 #	except:
 #		print "Alignment Failed..."
 #		sys.exit()
-def sam2bam():
+def sam2bam(merged):
 	print "Converting SAM to BAM..."
-	subprocess.Popen([sampath,'view','-bS','%s_merged.sam','-o','%s.bam' % (SNAME,SNAME)]).wait()
-def sort():
+	BAM = merged.strip('.sam') + '.bam'
+	subprocess.Popen([sampath,'view','-bS',merged,'-o',BAM]).wait()
+	return BAM
+def sort(BAM):
 	print "Sorting BAM File..."
-	subprocess.Popen([sampath,'sort','%s.bam','%s_sorted.bam' % (SNAME,SNAME)]).wait()
-def readgroups():
+	SORTED = BAM.strip('.bam') + '_sorted'
+	subprocess.Popen([sampath,'sort',BAM,SORTED]).wait()
+	return SORTED
+def readgroups(SORTED):
+	# Not used anymore #
 	print "Changing Read Groups..."
 	picardjar = picardpath + "AddOrReplaceReadGroups.jar"
 	subprocess.Popen([java,picardjar,'INPUT=%s_sorted.bam','OUTPUT=%s_sorted_grouped.bam','SORT_ORDER=coordinate','RGLB=8','RGPL=Illumina','RGPU=1','RGSM=%s' % (SNAME,SNAME)]).wait()
-def rmv_dups():
+def rmv_dups(SORTED):
 	picardjar = picardpath + "MarkDuplicates.jar"
 	print "Removing Duplicate Reads..."
-	subprocess.Popen([java,picardjar,'REMOVE_DUPLICATES=true','M=%s_dup_mets.out','I=%s_sorted_grouped.bam','O=%s.nodup.bam' % (SNAME,SNAME,SNAME)]).wait()
-def index():
+	MOUT = 'M=' + SNAME + '_dup_mets.out'
+	IN = 'I=' + SORTED + '.bam'
+	OUT = 'O=' + SNAME +'.nodup.bam'
+	subprocess.Popen([java,'-Xmx6g','-jar',picardjar,'REMOVE_DUPLICATES=true',MOUT,IN,OUT]).wait()
+	return (SNAME + '.nodup.bam')
+def index(NODUPS):
+	INPUT = 'I=' + SNAME + '.nodup.bam'
 	print "Creating Index..."
 	picardjar = picardpath + "BuildBamIndex.jar"
-	subprocess.Popen([java,picardjar,'INPUT=%s.nodup.bam' % (SNAME)]).wait()
-def index_stats():
+	subprocess.Popen([java,'-Xmx6g','-jar',picardjar,INPUT]).wait()
+def index_stats(IDX):
 	print "Running Index stats..."
 	picardjar = picardpath + "BamIndexStats.jar"
-	subprocess.Popen([java,picardjar,'INPUT=%s.nodup.bam','>','%s.BamIDXstats.txt' % (SNAME,SNAME)]).wait()
-def validate():
+	INPUT = 'INPUT=' + IDX
+	OUTPUT = SNAME + '.bam_IDXstats.txt'
+	outfile = open(OUTPUT,'w')
+	idx_p = subprocess.Popen([java,'-Xmx6g','-jar',picardjar,INPUT], stdout=subprocess.PIPE)
+	idxout = idx_p.communicate()[0]
+	outfile.write(idxout)
+def validate(NODUPS):
 	print "Validating BAM File..."
 	picardjar = picardpath + "ValidateSamFile.jar"
-	subprocess.Popen([java,picardjar,'INPUT=%s.nodup.bam' % (SNAME)]).wait()
+	INPUT = 'INPUT=' + NODUPS
+	subprocess.Popen([java,'-Xmx6g','-jar',picardjar,INPUT]).wait()
 def seq_dict():
 	print "Generating the Sequence Dictionary..."
 	picardjar = picardpath + "CreateSequenceDictionary.jar"
-	subprocess.Popen([java,picardjar,'REFERENCE=%s','OUTPUT=%s.dict' % (REF,REF)]).wait()
+	REFERENCE = 'REFERENCE=%s' % REF
+	OUTPUT = 'OUTPUT=%s.dict' % REF
+	subprocess.Popen([java,'-Xmx6g','-jar',picardjar,REFERENCE,OUTPUT]).wait()
 def fasta_idx():
 	print "Creating index..."
 	subprocess.Popen([sampath,'faidx',REF]).wait()
-def reorder():
+def reorder(NODUPS):
 	print "Reordering BAM file..."
 	picardjar = picardpath + "ReorderSam.jar"
-	subprocess.Popen([java,picardjar,'I=%s.nodup.bam','O=%s.nodup_reorder.bam','R=%s' % (SNAME,SNAME,REF)]).wait()
-def realign():
+	INPUT = 'I=' + NODUPS
+	OUTPUT = 'O=%s.nodup_reorder.bam' % SNAME
+	REFERENCE = 'R=' + REF
+	subprocess.Popen([java,'-Xmx6g','-jar',picardjar,INPUT,OUTPUT,REFERENCE]).wait()
+	return ('%s.nodup_reorder.bam' % SNAME)
+def realign(REORDER):
 	print "Running Realignment..."
 	picardjar = picardpath + "FixMateInformation.jar"
-	subprocess.Popen([java,GATK,'-T','RealignerTargetCreator','-R',REF,'-o','%s.bam.list','-I','%s.nodup_reorder.bam' %(SNAME,SNAME)]).wait()
-	subprocess.Popen([java,GATK,'-T','IndelRealigner','-targetIntervals','%s.bam.list','-I','%s.nodup_reorder.bam','-R',REF,'-o','%s.realigned.bam' % (SNAME,SNAME,SNAME)]).wait()
-	subprocess.Popen([java,picardjar,'INPUT=%s.realigned.bam','OUTPUT=%s.realigned_fixmate.bam','SO=coordinate','VALIDATION_STRINGENCY=LENIENT','CREATE_INDEX=true' % (SNAME)]).wait()
+	OUTLIST = '%s.bam.list' % SNAME
+	REALIGNED = '%s.realigned.bam' % SNAME
+	print java,'-Xmx6g','-jar',GATK,'-T','RealignerTargetCreator','-R',REF,'-o',OUTLIST,'-I',REORDER
+	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','RealignerTargetCreator','-R',REF,'-o',OUTLIST,'-I',REORDER]).wait()
+	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','IndelRealigner','-targetIntervals',OUTLIST,'-I',REORDER,'-R',REF,'-o',REALIGNED]).wait()
+	INPUT = "INPUT=%s" % REALIGNED
+	OUTPUT = "OUTPUT=%s.realigned_fixmate.bam" % SNAME
+	subprocess.Popen([java,picardjar,INPUT,OUTPUT,'SO=coordinate','VALIDATION_STRINGENCY=LENIENT','CREATE_INDEX=true']).wait()
 def recalibrate():
 	print "Running base recalibration..."
-	subprocess.Popen([java,GATK,'-T','BaseRecalibrator','-I','%s.realigned_fixmate.bam','-R',REF,'-o','%s.recal.table' % (SNAME)]).wait()
+	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','BaseRecalibrator','-I','%s.realigned_fixmate.bam','-R',REF,'-o','%s.recal.table' % (SNAME)]).wait()
 def rescore():
 	print "Running base quality score recalibration..."
-	subprocess.Popen([java,GATK,'-T','PrintReads','-R',REF,'-I','%s.realigned_fixmate.bam','-BQSR','recalibration_report.grp','-o','%s_rescored.bam' % (SNAME,SNAME)]).wait()
-	subprocess.Popen([java,GATK,'-T','IndelGenotyperV2','-R',REF,'-I','%s.realigned_fixmate.bam','-O','%s_indels.txt','--verbose','-o','%s_indel_stats.txt' % (SNAME,SNAME,SNAME)]).wait()
+	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','PrintReads','-R',REF,'-I','%s.realigned_fixmate.bam','-BQSR','recalibration_report.grp','-o','%s_rescored.bam' % (SNAME,SNAME)]).wait()
+	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','IndelGenotyperV2','-R',REF,'-I','%s.realigned_fixmate.bam','-O','%s_indels.txt','--verbose','-o','%s_indel_stats.txt' % (SNAME,SNAME,SNAME)]).wait()
 def snps_indels():
 	print "Running SNP and InDels analysis"
-	subprocess.Popen([java,GATK,'-T','UnifiedGenotyper','-R',REF,'-I','%s.realigned_fixmate.bam','-varout','%s.geli.calls','-vf','GELI','-stand_call_conf','30.0','-stand_emit_conf','10.0','-pl','SOLEXA' % (SNAME,SNAME)]).wait()	
+	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','UnifiedGenotyper','-R',REF,'-I','%s.realigned_fixmate.bam','-varout','%s.geli.calls','-vf','GELI','-stand_call_conf','30.0','-stand_emit_conf','10.0','-pl','SOLEXA' % (SNAME,SNAME)]).wait()	
 
 #QC()
-align()
-sam2bam()
-sort()
-readgroups()
-rmv_dups()
-index()
-index_stats()
-validate()
+#merged = align() COMMENTED OUTFOR TESTING
+#merged = 'norrissw_796_merged.sam' #for testing only
+#BAM = sam2bam(merged)
+#SORTED = sort(BAM)
+#readgroups(SORTED) #SHOULD NO LONGER BE NECESSARY
+#SORTED = 'norrissw_796_merged_sorted' #for testing only
+#NODUPS = rmv_dups(SORTED)
+#print NODUPS, 'norrissw_796.nodup.bam' #for testing only
+#index(NODUPS)
+#index_stats(NODUPS)
+#validate(NODUPS)
 #seq_dict() #Only needs to run once
 #fasta_idx() #Only needs to run once
-reorder()
-realign()
+NODUPS = 'norrissw_796.nodup.bam'
+REORDER = reorder(NODUPS)
+REALIGNED = realign(REORDER)
 recalibrate()
 rescore()
 snps_indels()
