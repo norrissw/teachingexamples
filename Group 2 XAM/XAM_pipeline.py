@@ -190,27 +190,27 @@ def snps_indels(RESCORE):
 #java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -R $REORDER -T VariantAnnotator -I ${F1}.recal.bam -o annotation.out.vcf -A Coverage --variant ${F1}.raw_variants.vcf --dbsnp $VCFdb  
 
 
-#QC()
-#merged = align() COMMENTED OUTFOR TESTING
+QC()
+merged = align()
 #merged = 'norrissw_796_merged.sam' #for testing only
-#BAM = sam2bam(merged)
-#SORTED = sort(BAM)
+BAM = sam2bam(merged)
+SORTED = sort(BAM)
 #readgroups(SORTED) #SHOULD NO LONGER BE NECESSARY
 #SORTED = 'norrissw_796_merged_sorted' #for testing only
-#NODUPS = rmv_dups(SORTED)
+NODUPS = rmv_dups(SORTED)
 #print NODUPS, 'norrissw_796.nodup.bam' #for testing only
-#index(NODUPS)
-#index_stats(NODUPS)
-#validate(NODUPS)
+index(NODUPS)
+index_stats(NODUPS)
+validate(NODUPS)
 #seq_dict() #Only needs to run once
 #fasta_idx() #Only needs to run once
 #NODUPS = 'norrissw_796.nodup.bam' # for testing only
-#REORDER = reorder(NODUPS)
-#index(REORDER)
-#index_stats(REORDER)
+REORDER = reorder(NODUPS)
+index(REORDER)
+index_stats(REORDER)
 #REORDER = "norrissw_796.nodup_reorder.bam" # for testing only
-#REALIGNED = realign(REORDER)
-REALIGNED = "norrissw_796.realigned_fixmate.bam"
+REALIGNED = realign(REORDER)
+#REALIGNED = "norrissw_796.realigned_fixmate.bam" # for testing only
 recalibrate(REALIGNED)
 RESCORE = rescore(REALIGNED)
 snps_indels(RESCORE)
