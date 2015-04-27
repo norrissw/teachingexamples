@@ -129,8 +129,8 @@ def rescore(REALIGNED):
 	return RESCORE
 def snps_indels(RESCORE):
 	print "Running SNP and InDels analysis"
-    INDELS = "%s_indels.txt" % SNAME
-    INDELSTATS = "%s_indels_stats.txt" % SNAME
+	INDELS = "%s_indels.txt" % SNAME
+	INDELSTATS = "%s_indels_stats.txt" % SNAME
 	VARIANTS = "%s_variants.vcf" % SNAME
 	CALLS = "%s.calls.geli" % SNAME
 	KNOWNSITES = "/gpfs_fs/bnfo620/exome_data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
