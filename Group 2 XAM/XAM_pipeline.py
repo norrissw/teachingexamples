@@ -135,11 +135,17 @@ def snps_indels(RESCORE):
 	CALLS = "%s.calls.geli" % SNAME
 	KNOWNSITES = "/gpfs_fs/bnfo620/exome_data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
 	VARIANTANNO = "%s_annotated.vcf"
+	RECALOUT = "%s_INDEL.recal" % SNAME
+	TRANCHESOUT = "%s_INDEL.tranches" % SNAME
+	OMNI = "/gpfs_fs/bnfo620/exome_data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
+	HAPMAP = VARIANTANNO #"new.annotated.vcf"
+	DBSNP = "dbsnp_138.hg19.vcf"
+	RSCRIPT = "%s_plots.R" % SNAME
 	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','VariantAnnotator','-R',REF,'-I',RESCORE,'--variant',KNOWNSITES,'-o',VARIANTANNO]).wait()
 	#subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','IndelGenotyperV2','-R',REF,'-I',RESCORE,'-O',INDELS,'--verbose','-o',INDELSTATS]).wait()
 	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','HaplotypeCaller','-R',REF,'-I',RESCORE,'--genotyping_mode','DISCOVERY','-o',VARIANTS]).wait()
 	#subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','UnifiedGenotyper','-R',REF,'-I',RESCORE,'-varout',CALLS,'-vf','GELI','-stand_call_conf','30.0','-stand_emit_conf','10.0','-pl','SOLEXA']).wait()	
-	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','VariantRecalibrator','-R',REF,'-input',VARIANTS,'-recalFile',RECALOUT,'-resource:hapmap,known=false,training=true,truth=true,prior=15.0',HAPMAP,'-resource:omni,known=false,training=true,truth=false,prior=12.0',OMNI,'-resource:dbsnp,known=true,training=false,truth=false,prior=2.0',DBSNP,'-an','MQ','-mode','INDEL', #this is not finished
+	subprocess.Popen([java,'-Xmx6g','-jar',GATK,'-T','VariantRecalibrator','-R',REF,'-input',VARIANTS,'-recalFile',RECALOUT,'-tranchesFile','--maxGaussians','4','-resource:hapmap,known=false,training=true,truth=true,prior=15.0',HAPMAP,'-resource:omni,known=false,training=true,truth=false,prior=12.0',OMNI,'-resource:dbsnp,known=true,training=false,truth=false,prior=2.0',DBSNP,'-an','MQ','-mode','INDEL','-an','QD','-an','DP','-an','FS','-an','SOR','-an','ReadPosRankSum','-an','MQRankSum','-an','InbreedingCoeff','-rscriptFile',RSCRIPT]).wait() #this is not finished
 #VariantRecalibrator  #assigning accurate confidence scores to each putative mutation call
 #java -jar /usr/global/blp/GenomeAnalysisTK-3.1.1/GenomeAnalysisTK.jar -T VariantRecalibrator -R ${REFERENCE} -input ${SAMBAM}.raw_variants.vcf -resource:hapmap,known=false,training=true,truth=true,prior=15.0 new.annotated.vcf -resource:omni,known=false,training=true,truth=false,prior=12.0 /gpfs_fs/bnfo620/nultontj/4_14_XAM/1000G_omni2.5.hg19.sites.vcf -resource:dbsnp,known=true,training=false,truth=false,prior=6.0 /gpfs_fs/bnfo620/nultontj/4_14_XAM/dbsnp_138.hg19.vcf -mode SNP -an QD -an MQ -an HaplotypeScore -recalFile ${SAMBAM}.raw.SNPs.recal  -tranchesFile ${SAMBAM}.raw.SNPs.tranches -rscriptFile ${SAMBAM}.recal.plots.R
 
@@ -193,5 +199,5 @@ def snps_indels(RESCORE):
 #REALIGNED = realign(REORDER)
 REALIGNED = "norrissw_796.realigned_fixmate.bam"
 recalibrate(REALIGNED)
-rescore()
-snps_indels()
+RESCORE = rescore(REALIGNED)
+snps_indels(RESCORE)
