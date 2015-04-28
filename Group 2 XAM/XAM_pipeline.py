@@ -36,7 +36,7 @@ def align():
 	#print bwapath,'mem','-t','10',REF,'-R',RG,F1,F2,'>',merged
 	memalign = subprocess.Popen(['bwa','mem','-t','20','-M',REF,'-R',RG,F1,F2], stdout=subprocess.PIPE)#,stdin=subprocess.PIPE,stderr=subprocess.PIPE).wait() #maybe use .call?
 	memout = memalign.communicate()[0]
-#	print memout
+	memout.wait()
 	mergedfile.write(memout)
 	return merged
 #	except:
@@ -201,11 +201,11 @@ NODUPS = rmv_dups(SORTED)
 #print NODUPS, 'norrissw_796.nodup.bam' #for testing only
 index(NODUPS)
 index_stats(NODUPS)
-validate(NODUPS)
 #seq_dict() #Only needs to run once
 #fasta_idx() #Only needs to run once
 #NODUPS = 'norrissw_796.nodup.bam' # for testing only
 REORDER = reorder(NODUPS)
+validate(NODUPS)
 index(REORDER)
 index_stats(REORDER)
 #REORDER = "norrissw_796.nodup_reorder.bam" # for testing only
