@@ -36,7 +36,6 @@ def align():
 	#print bwapath,'mem','-t','10',REF,'-R',RG,F1,F2,'>',merged
 	memalign = subprocess.Popen(['bwa','mem','-t','20','-M',REF,'-R',RG,F1,F2], stdout=subprocess.PIPE)#,stdin=subprocess.PIPE,stderr=subprocess.PIPE).wait() #maybe use .call?
 	memout = memalign.communicate()[0]
-	memout.wait()
 	mergedfile.write(memout)
 	return merged
 #	except:
