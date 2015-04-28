@@ -134,7 +134,7 @@ def snps_indels(RESCORE):
 	VARIANTS = "%s_variants.vcf" % SNAME
 	CALLS = "%s.calls.geli" % SNAME
 	KNOWNSITES = "/gpfs_fs/bnfo620/exome_data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
-	VARIANTANNO = "%s_annotated.vcf"
+	VARIANTANNO = "%s_annotated.vcf" % SNAME
 	RECALOUT_IND = "%s_INDEL.recal" % SNAME
 	TRANCHESOUT_IND = "%s_INDEL.tranches" % SNAME
 	RECALOUT_SNP = "%s_INDEL.recal" % SNAME
