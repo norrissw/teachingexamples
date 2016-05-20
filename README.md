@@ -1,4 +1,4 @@
-# teachingexamples
+# Teaching Examples
 BLAST &amp; GATK (eXome Analysis Pipeline) examples used for teaching purposes
 
 ## BLAST Pipeline ##
