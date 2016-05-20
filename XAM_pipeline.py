@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Written by: Shaun Norris
 # VCU BNFO 620 - Bioinformatics practicum
-# Group 2 - XAM Pipeline
+# Group 2 - XAM Pipeline - The Exome analysis pipeline project
 
 ### Imports ###
 import subprocess,sys,re
